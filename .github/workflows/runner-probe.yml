@@ -1,0 +1,67 @@
+name: Runner Probe
+
+# 触发方式：push 到 main 自动跑一次；也可在 Actions 页面手动 Run workflow
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# 最小权限：只读仓库内容
+permissions:
+  contents: read
+
+# 同一分支重复触发时取消上一次，避免排队堆积
+concurrency:
+  group: runner-probe-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe-x64:
+    name: 探测 ubuntu-26.04 (x64)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 25
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 环境与硬件信息采集
+        shell: bash
+        run: |
+          bash .github/scripts/probe.sh "$RUNNER_TEMP/probe-report.md"
+          echo "===== 完整报告开始 ====="
+          cat "$RUNNER_TEMP/probe-report.md"
+          echo "===== 完整报告结束 ====="
+          cat "$RUNNER_TEMP/probe-report.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 上传报告为构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: probe-report-ubuntu-26.04-x64
+          path: ${{ runner.temp }}/probe-report.md
+          if-no-files-found: warn
+          retention-days: 14
+
+  probe-arm64:
+    name: 探测 ubuntu-26.04-arm (arm64)
+    runs-on: ubuntu-26.04-arm
+    timeout-minutes: 25
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 环境与硬件信息采集
+        shell: bash
+        run: |
+          bash .github/scripts/probe.sh "$RUNNER_TEMP/probe-report.md"
+          echo "===== 完整报告开始 ====="
+          cat "$RUNNER_TEMP/probe-report.md"
+          echo "===== 完整报告结束 ====="
+          cat "$RUNNER_TEMP/probe-report.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 上传报告为构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: probe-report-ubuntu-26.04-arm64
+          path: ${{ runner.temp }}/probe-report.md
+          if-no-files-found: warn
+          retention-days: 14

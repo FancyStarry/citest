@@ -1,6 +1,6 @@
 name: Runner Probe
 
-# 触发方式：push 到 main 自动跑一次；也可在 Actions 页面手动 Run workflow
+# 触发方式：push 到 main 自动跑；也可在 Actions 页面手动 Run workflow
 on:
   push:
     branches: [main]
@@ -16,6 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ========== Ubuntu 26.04 x64 ==========
   probe-x64:
     name: 探测 ubuntu-26.04 (x64)
     runs-on: ubuntu-26.04
@@ -23,7 +24,6 @@ jobs:
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
-
       - name: 环境与硬件信息采集
         shell: bash
         run: |
@@ -32,7 +32,6 @@ jobs:
           cat "$RUNNER_TEMP/probe-report.md"
           echo "===== 完整报告结束 ====="
           cat "$RUNNER_TEMP/probe-report.md" >> "$GITHUB_STEP_SUMMARY"
-
       - name: 上传报告为构建产物
         uses: actions/upload-artifact@v4
         with:
@@ -41,6 +40,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  # ========== Ubuntu 26.04 arm64 ==========
   probe-arm64:
     name: 探测 ubuntu-26.04-arm (arm64)
     runs-on: ubuntu-26.04-arm
@@ -48,7 +48,6 @@ jobs:
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
-
       - name: 环境与硬件信息采集
         shell: bash
         run: |
@@ -57,11 +56,82 @@ jobs:
           cat "$RUNNER_TEMP/probe-report.md"
           echo "===== 完整报告结束 ====="
           cat "$RUNNER_TEMP/probe-report.md" >> "$GITHUB_STEP_SUMMARY"
-
       - name: 上传报告为构建产物
         uses: actions/upload-artifact@v4
         with:
           name: probe-report-ubuntu-26.04-arm64
+          path: ${{ runner.temp }}/probe-report.md
+          if-no-files-found: warn
+          retention-days: 14
+
+  # ========== macOS 26 (Apple Silicon) ==========
+  probe-macos:
+    name: 探测 macos-26 (Apple Silicon)
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+      - name: 环境与硬件信息采集
+        shell: bash
+        run: |
+          bash .github/scripts/probe-macos.sh "$RUNNER_TEMP/probe-report.md"
+          echo "===== 完整报告开始 ====="
+          cat "$RUNNER_TEMP/probe-report.md"
+          echo "===== 完整报告结束 ====="
+          cat "$RUNNER_TEMP/probe-report.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: 上传报告为构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: probe-report-macos-26-arm64
+          path: ${{ runner.temp }}/probe-report.md
+          if-no-files-found: warn
+          retention-days: 14
+
+  # ========== Windows Server 2025 (x64) ==========
+  probe-windows-2025:
+    name: 探测 windows-2025 (x64)
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+      - name: 环境与硬件信息采集
+        shell: pwsh
+        run: |
+          & "$env:GITHUB_WORKSPACE/.github/scripts/probe-windows.ps1" -OutFile "$env:RUNNER_TEMP/probe-report.md"
+          echo "===== 完整报告开始 ====="
+          Get-Content "$env:RUNNER_TEMP/probe-report.md" -Encoding utf8
+          echo "===== 完整报告结束 ====="
+          Get-Content "$env:RUNNER_TEMP/probe-report.md" -Encoding utf8 | Out-File -FilePath "$env:GITHUB_STEP_SUMMARY" -Encoding utf8 -Append
+      - name: 上传报告为构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: probe-report-windows-2025-x64
+          path: ${{ runner.temp }}/probe-report.md
+          if-no-files-found: warn
+          retention-days: 14
+
+  # ========== Windows 11 Arm64 ==========
+  probe-windows-arm:
+    name: 探测 windows-11-arm (arm64)
+    runs-on: windows-11-arm
+    timeout-minutes: 30
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+      - name: 环境与硬件信息采集
+        shell: pwsh
+        run: |
+          & "$env:GITHUB_WORKSPACE/.github/scripts/probe-windows.ps1" -OutFile "$env:RUNNER_TEMP/probe-report.md"
+          echo "===== 完整报告开始 ====="
+          Get-Content "$env:RUNNER_TEMP/probe-report.md" -Encoding utf8
+          echo "===== 完整报告结束 ====="
+          Get-Content "$env:RUNNER_TEMP/probe-report.md" -Encoding utf8 | Out-File -FilePath "$env:GITHUB_STEP_SUMMARY" -Encoding utf8 -Append
+      - name: 上传报告为构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: probe-report-windows-11-arm64
           path: ${{ runner.temp }}/probe-report.md
           if-no-files-found: warn
           retention-days: 14
